@@ -2,22 +2,16 @@ package server
 
 import (
 	"net/http"
+	"ozon_service/service"
 
 	"github.com/gorilla/mux"
 )
 
-type Router struct {
-	server http.Server
-}
-
-func New() *Router {
+func New(s *service.Service) http.Handler {
+	h := Handler{svc: s}
 	r := mux.NewRouter()
-	r.HandleFunc("/api/v1/create", Create).Methods(http.MethodPost)
-	r.HandleFunc("/api/v1/get_by_url", GetByURL).Methods(http.MethodGet)
-	r.HandleFunc("/api/v1/delete_by_url", DeleteByURL).Methods(http.MethodDelete)
-	return &Router{
-		server: http.Server{
-			Addr:    ":8080",
-			Handler: r,
-		}}
+	r.HandleFunc("/api/v1/job", h.Create).Methods(http.MethodPost)
+	r.HandleFunc("/api/v1/job", h.GetByURL).Methods(http.MethodGet)
+	r.HandleFunc("/api/v1/job", h.DeleteByURL).Methods(http.MethodDelete)
+	return r
 }
