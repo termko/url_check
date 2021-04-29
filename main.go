@@ -36,7 +36,7 @@ func main() {
 	DB.Exec(statement)
 	statement = `CREATE TABLE schedule (
 		id SERIAL PRIMARY KEY,
-		URL TEXT UNIQUE,
+		url TEXT UNIQUE,
 		jobID INTEGER
 		);`
 	_, err = DB.Exec(statement)
@@ -45,9 +45,10 @@ func main() {
 	}
 	statement = `CREATE TABLE ping (
 		id SERIAL PRIMARY KEY,
-		URL TEXT,
+		url TEXT,
 		pingtime TIMESTAMP,
-		statuscode INTEGER);`
+		statuscode INTEGER,
+		available BOOLEAN);`
 	_, err = DB.Exec(statement)
 	if err != nil {
 		fmt.Println(err.Error())
