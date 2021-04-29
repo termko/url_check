@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"ozon_service/service"
 	"strconv"
@@ -27,24 +26,14 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if job.Interval == 0 {
-		interval, err := time.ParseDuration("24h")
-		if err != nil {
-			fmt.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("Something crashed :D"))
-			return
-		}
-		job.Interval = service.Duration(interval)
+		job.Interval = service.Duration(24 * time.Hour)
 	}
 	err = h.svc.Create(r.Context(), &job)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Something crashed :D"))
 		return
 	}
-	fmt.Println(job)
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
 }
 
 func (h *Handler) GetByURL(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +52,6 @@ func (h *Handler) GetByURL(w http.ResponseWriter, r *http.Request) {
 	result, err := h.svc.GetByURL(r.Context(), URL[0])
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Something broke ;)"))
 		return
 	}
 	if len(result) == 0 {
@@ -73,7 +61,6 @@ func (h *Handler) GetByURL(w http.ResponseWriter, r *http.Request) {
 	data, err := json.Marshal(result)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Something broke ;)"))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -91,11 +78,9 @@ func (h *Handler) DeleteByURL(w http.ResponseWriter, r *http.Request) {
 	err := h.svc.DeleteByURL(r.Context(), URL[0])
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Something doesn't work ;("))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
 }
 
 func (h *Handler) GetScore(w http.ResponseWriter, r *http.Request) {
@@ -128,13 +113,15 @@ func (h *Handler) GetScore(w http.ResponseWriter, r *http.Request) {
 	result, err := h.svc.GetScore(r.Context(), score)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Service goes down :/"))
+		return
+	}
+	if len(result) == 0 {
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	data, err := json.Marshal(result)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Something broke ;)"))
 		return
 	}
 	w.WriteHeader(http.StatusOK)

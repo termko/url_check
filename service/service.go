@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/robfig/cron/v3"
@@ -44,19 +45,19 @@ type Job struct {
 }
 
 type Score struct {
-	Date time.Time
-	N    int
+	Date time.Time `json:"date"`
+	N    int       `json:"n"`
 }
 
 type ScoreResult struct {
-	URL   string
-	Score int
+	URL   string `json:"url"`
+	Score int    `json:"score"`
 }
 
 type JobResult struct {
-	StatusCode int
-	PingTime   time.Time
-	Available  bool
+	StatusCode int       `json:"status_code"`
+	PingTime   time.Time `json:"ping_time"`
+	Available  bool      `json:"available"`
 }
 
 type Service struct {
@@ -83,9 +84,14 @@ func (s *Service) Create(ctx context.Context, job *Job) error {
 		ctx := context.Background()
 		err := s.repo.CheckURL(ctx, job.URL)
 		if err != nil {
+			m := sync.RWMutex{}
+			m.RLock()
 			jobID, ok := s.jobIDToURL[job.URL]
+			m.RUnlock()
 			if ok {
+				m.Lock()
 				delete(s.jobIDToURL, job.URL)
+				m.Unlock()
 				s.scheduler.Remove(jobID)
 				return
 			}
@@ -97,7 +103,7 @@ func (s *Service) Create(ctx context.Context, job *Job) error {
 			Timeout: 5 * time.Second,
 		}
 		resp, err := client.Get(job.URL)
-		if err != nil || resp.StatusCode >= 400 {
+		if err != nil || resp.StatusCode >= 500 {
 			available = false
 		} else {
 			status = resp.StatusCode
@@ -114,10 +120,12 @@ func (s *Service) Create(ctx context.Context, job *Job) error {
 	err = s.repo.Create(ctx, job, jobID)
 	if err != nil {
 		s.scheduler.Remove(jobID)
-		fmt.Println(err)
 		return err
 	}
+	m := sync.RWMutex{}
+	m.Lock()
 	s.jobIDToURL[job.URL] = jobID
+	m.Unlock()
 	return nil
 }
 
@@ -130,12 +138,15 @@ func (s *Service) GetByURL(ctx context.Context, URL string) ([]JobResult, error)
 }
 
 func (s *Service) DeleteByURL(ctx context.Context, URL string) error {
-	if jobID, ok := s.jobIDToURL[URL]; ok {
+	m := sync.RWMutex{}
+	m.RLock()
+	jobID, ok := s.jobIDToURL[URL]
+	m.RUnlock()
+	if ok {
 		s.scheduler.Remove(jobID)
 	}
 	s.repo.DeleteByURL(ctx, URL)
 	return nil
-
 }
 
 func (s *Service) GetScore(ctx context.Context, score *Score) ([]ScoreResult, error) {
