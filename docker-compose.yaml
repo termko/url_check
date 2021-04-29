@@ -3,7 +3,7 @@ version: '3.3'
 #services describe the containers that will start
 services:
     postgresql:
-        image: postgres:latest
+        image: postgres:alpine
         restart: always
         ports:
             - 5432:5432
@@ -13,7 +13,9 @@ services:
             - POSTGRES_USER=user
             - POSTGRES_PASSWORD='pass'
             - POSTGRES_DB='url_check'
-            - POSTGRES_HOST_AUTH_METHOD=trust
+            # - POSTGRES_HOST_AUTH_METHOD=trust
+        volumes:
+            - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     # api is the container name for our Go API
     api:
         environment:
